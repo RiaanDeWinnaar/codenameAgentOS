@@ -216,6 +216,7 @@ Thumbs.db
 # IDE files
 .vscode/settings.json
 .idea/
+.cursor/
 *.swp
 *.swo
 *~
