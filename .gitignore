@@ -231,3 +231,44 @@ agent-data/
 user-data/
 logs/
 audit/
+
+dev-debug.log
+# Environment variables
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+
+# Test and verification files (cleanup)
+*test*.js
+*verify*.js
+*verification*.js
+*-test.js
+*-verify.js
+*-verification.js
+test-*.js
+verify-*.js
+verification-*.js
+COMPLETE_DIAGNOSTIC_REPORT.md
+QWEN.md
+*diagnostic*.md
+*report*.md
+monaco-test.js
+test-monaco*.js
+test-language*.js
+task*-verification*.js
+*-task-*.js
+
+# Playwright test results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Task files
+# tasks.json
+# tasks/

@@ -1,0 +1,107 @@
+{
+  "name": "cnaios",
+  "version": "1.0.0",
+  "description": "An open-source agentic browser platform that enables natural language control of web applications.",
+  "main": "dist/main/main.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build:main": "webpack --config webpack.main.config.js",
+    "build:preload": "webpack --config webpack.preload.config.js",
+    "build:renderer": "webpack --config webpack.renderer.config.js",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "build:prod": "cross-env NODE_ENV=production npm run build",
+    "build:full": "node scripts/build.js",
+    "build:full:prod": "node scripts/build.js --production",
+    "start": "electron-forge start",
+    "start:prod": "npm run build:prod && electron .",
+    "dev": "concurrently \"webpack serve --config webpack.renderer.config.js\" \"wait-on http://localhost:3000 && electron .\"",
+    "clean": "rimraf dist out",
+    "rebuild": "npm run clean && npm run build",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "type-check": "tsc --noEmit --project tsconfig.main.json && tsc --noEmit --project tsconfig.preload.json && tsc --noEmit --project tsconfig.renderer.json",
+    "type-check:watch": "npm run type-check -- --watch",
+    "pre-commit": "lint-staged",
+    "prepare": "husky",
+  "test": "playwright test",
+  "test:smoke": "playwright test -g 'smoke'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RiaanDeWinnaar/codenameAgentOS.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/RiaanDeWinnaar/codenameAgentOS/issues"
+  },
+  "homepage": "https://github.com/RiaanDeWinnaar/codenameAgentOS#readme",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.8.3",
+    "@electron-forge/maker-deb": "^7.8.3",
+    "@electron-forge/maker-rpm": "^7.8.3",
+    "@electron-forge/maker-squirrel": "^7.8.3",
+    "@electron-forge/maker-zip": "^7.8.3",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.3",
+    "@electron-forge/plugin-fuses": "^7.8.3",
+    "@electron/fuses": "^1.8.0",
+    "@eslint/js": "^9.35.0",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@typescript-eslint/eslint-plugin": "^8.42.0",
+    "@typescript-eslint/parser": "^8.42.0",
+    "concurrently": "^9.2.1",
+    "copy-webpack-plugin": "^13.0.1",
+    "cross-env": "^10.0.0",
+    "css-loader": "^7.1.2",
+    "electron": "^38.0.0",
+    "electron-reload": "^2.0.0-alpha.1",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "html-webpack-plugin": "^5.6.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
+    "monaco-editor-webpack-plugin": "^7.1.0",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.2",
+    "wait-on": "^8.0.4",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1",
+  "webpack-dev-server": "^5.2.2",
+  "@playwright/test": "^1.47.0"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/xterm": "^5.5.0",
+    "electron-is-dev": "^3.0.1",
+    "electron-squirrel-startup": "^1.0.1",
+    "monaco-editor": "^0.52.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,scss,md}": [
+      "prettier --write"
+    ]
+  }
+}

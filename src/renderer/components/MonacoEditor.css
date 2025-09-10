@@ -1,0 +1,177 @@
+/* Monaco Editor Container */
+.monaco-editor-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  border: 1px solid var(--border-color, #3c3c3c);
+  border-radius: 4px;
+  background-color: var(--editor-bg, #1e1e1e);
+  overflow: hidden;
+}
+
+.monaco-editor-container.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--error-bg, #2d1b1b);
+  border-color: var(--error-border, #ff6b6b);
+}
+
+/* Loading State */
+.monaco-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--editor-bg, #1e1e1e);
+  color: var(--text-color, #cccccc);
+  z-index: 10;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--accent-color, #007acc);
+  border-top: 3px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.monaco-loading p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Error State */
+.monaco-error {
+  text-align: center;
+  color: var(--error-text, #ff6b6b);
+}
+
+.monaco-error h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.monaco-error p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: var(--text-muted, #888888);
+  max-width: 400px;
+}
+
+.retry-button {
+  padding: 8px 16px;
+  background-color: var(--accent-color, #007acc);
+  color: var(--button-text, #ffffff);
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retry-button:hover {
+  background-color: var(--accent-hover, #005a9e);
+}
+
+.retry-button:active {
+  background-color: var(--accent-active, #004578);
+}
+
+/* Theme Variables - Dark (default) */
+:root {
+  --editor-bg: #1e1e1e;
+  --border-color: #3c3c3c;
+  --text-color: #cccccc;
+  --text-muted: #888888;
+  --accent-color: #007acc;
+  --accent-hover: #005a9e;
+  --accent-active: #004578;
+  --error-bg: #2d1b1b;
+  --error-border: #ff6b6b;
+  --error-text: #ff6b6b;
+  --button-text: #ffffff;
+}
+
+/* Theme Variables - Light */
+[data-theme="light"] {
+  --editor-bg: #ffffff;
+  --border-color: #d3d3d3;
+  --text-color: #333333;
+  --text-muted: #666666;
+  --accent-color: #0078d4;
+  --accent-hover: #106ebe;
+  --accent-active: #005a9e;
+  --error-bg: #fff5f5;
+  --error-border: #e53e3e;
+  --error-text: #e53e3e;
+  --button-text: #ffffff;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .monaco-editor-container {
+    min-height: 250px;
+  }
+  
+  .monaco-loading p {
+    font-size: 12px;
+  }
+  
+  .loading-spinner {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 12px;
+  }
+  
+  .monaco-error h3 {
+    font-size: 16px;
+  }
+  
+  .monaco-error p {
+    font-size: 12px;
+  }
+  
+  .retry-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* High Contrast Support */
+@media (prefers-contrast: high) {
+  .monaco-editor-container {
+    border-width: 2px;
+  }
+  
+  .retry-button {
+    border: 2px solid var(--accent-color);
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
+  
+  .retry-button {
+    transition: none;
+  }
+}

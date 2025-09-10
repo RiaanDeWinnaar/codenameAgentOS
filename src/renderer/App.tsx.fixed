@@ -1,0 +1,198 @@
+import React, { useState, useEffect } from 'react';
+import MonacoEditor, { SUPPORTED_LANGUAGES } from './components/MonacoEditor';
+import BrowserComponent from './components/BrowserComponent';
+import './App.css';
+
+interface AppStatus {
+  yoloMode: boolean;
+  isAutomating: boolean;
+  automationTasks: number;
+  currentUrl: string;
+  editorMode: string;
+  lastActivity: string;
+}
+
+const App: React.FC = () => {
+  const [appInfo, setAppInfo] = useState<{
+    name: string;
+    version: string;
+    isPackaged: boolean;
+  }>({
+    name: 'YOLO-Browser',
+    version: '1.0.0',
+    isPackaged: false
+  });
+
+  const [status, setStatus] = useState<AppStatus>({
+    yoloMode: false,
+    isAutomating: false,
+    automationTasks: 0,
+    currentUrl: 'https://www.google.com',
+    editorMode: 'TypeScript',
+    lastActivity: 'Just started'
+  });
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        if (window.electronAPI) {
+          const info = await window.electronAPI.getAppInfo();
+          setAppInfo(info);
+          await window.electronAPI.logInfo('YOLO-Browser initialized successfully');
+        }
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+      }
+    };
+
+    initializeApp();
+  }, []);
+
+  const handleEditorChange = (value: string, language: string) => {
+    setStatus(prev => ({ 
+      ...prev, 
+      editorMode: language,
+      lastActivity: `Editing ${language.toLowerCase()} code`
+    }));
+  };
+
+  const handleLanguageChange = (language: string) => {
+    setStatus(prev => ({ 
+      ...prev, 
+      editorMode: language,
+      lastActivity: `Switched to ${language}`
+    }));
+  };
+
+  return (
+    <div className='app'>
+      <header className='app-header'>
+        <h1>{appInfo.name}</h1>
+        <div className='app-info'>
+          <span>v{appInfo.version}</span>
+          <span>{appInfo.isPackaged ? 'Production' : 'Development'}</span>
+        </div>
+      </header>
+
+      <main className='app-main'>
+        <div className='status-panel'>
+          <h2>System Status</h2>
+          <div className='status-grid'>
+            <div className='status-item'>
+              <span className='status-label'>YOLO Mode:</span>
+              <span
+                className={`status-indicator ${status.yoloMode ? 'enabled' : 'disabled'}`}
+              >
+                {status.yoloMode ? 'ON' : 'OFF'}
+              </span>
+            </div>
+            <div className='status-item'>
+              <span className='status-label'>Automation:</span>
+              <span
+                className={`status-indicator ${status.isAutomating ? 'active' : 'inactive'}`}
+              >
+                {status.isAutomating ? 'ACTIVE' : 'IDLE'}
+              </span>
+            </div>
+            <div className='status-item'>
+              <span className='status-label'>Editor Mode:</span>
+              <span className='status-value'>{status.editorMode}</span>
+            </div>
+            <div className='status-item'>
+              <span className='status-label'>Current URL:</span>
+              <span className='status-value'>{status.currentUrl}</span>
+            </div>
+            <div className='status-item'>
+              <span className='status-label'>Last Activity:</span>
+              <span className='status-value'>{status.lastActivity}</span>
+            </div>
+            <div className='status-item'>
+              <span className='status-label'>Languages:</span>
+              <span className='status-value'>{SUPPORTED_LANGUAGES.length} supported</span>
+            </div>
+          </div>
+        </div>
+
+        <div className='workspace'>
+          <div className='editor-panel'>
+            <div className='editor-header'>
+              <h2>Code Editor</h2>
+              <div className='editor-controls'>
+                <span className='editor-info'>Monaco Editor</span>
+              </div>
+            </div>
+            <MonacoEditor
+              height="500px"
+              defaultLanguage="typescript"
+              defaultValue={`// Welcome to YOLO-Browser!
+// This is a TypeScript editor powered by Monaco Editor
+
+interface YOLOConfig {
+  mode: 'autonomous' | 'assisted';
+  trustLevel: number;
+  automationEnabled: boolean;
+}
+
+const config: YOLOConfig = {
+  mode: 'autonomous',
+  trustLevel: 0.8,
+  automationEnabled: true
+};
+
+// Start building something amazing!
+console.log('YOLO-Browser is ready for autonomous development!');
+`}
+              onChange={handleEditorChange}
+              onLanguageChange={handleLanguageChange}
+              fontSize={14}
+              className='main-editor'
+            />
+          </div>
+        </div>
+
+        <div className='browser-panel'>
+          <div className='browser-header'>
+            <h2>Browser Automation</h2>
+            <div className='browser-controls'>
+              <button 
+                onClick={() => setStatus(prev => ({ ...prev, yoloMode: !prev.yoloMode }))}
+                className={`yolo-toggle ${status.yoloMode ? 'enabled' : 'disabled'}`}
+              >
+                {status.yoloMode ? '🤖 YOLO ON' : '⏸️ YOLO OFF'}
+              </button>
+            </div>
+          </div>
+          <div className='browser-container'>
+            <BrowserComponent
+              initialUrl="https://www.google.com"
+              onUrlChange={(url) => {
+                setStatus(prev => ({ ...prev, currentUrl: url }));
+                if (window.electronAPI) {
+                  window.electronAPI.logInfo(`Browser navigated to: ${url}`);
+                }
+              }}
+              onAutomationStateChange={(state) => {
+                setStatus(prev => ({ 
+                  ...prev, 
+                  isAutomating: state.isAutomating,
+                  lastActivity: state.currentAction || 'Browser automation'
+                }));
+                if (window.electronAPI) {
+                  window.electronAPI.logInfo(`Automation state: ${state.isAutomating ? 'active' : 'inactive'}`);
+                }
+              }}
+              className='main-browser'
+            />
+          </div>
+        </div>
+      </main>
+
+      <footer className='app-footer'>
+        <p>YOLO-Browser - Autonomous Web Automation Platform</p>
+        <p>Monaco Editor Integration • WebContentsView Browser • YOLO Mode Ready</p>
+      </footer>
+    </div>
+  );
+};
+
+export default App;

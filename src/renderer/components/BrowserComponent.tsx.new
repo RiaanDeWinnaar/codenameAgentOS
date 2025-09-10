@@ -1,0 +1,498 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+/**
+ * Browser tab interface
+ */
+interface BrowserTab {
+  id: string;
+  title: string;
+  url: string;
+  isActive: boolean;
+  isLoading: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  webContentsId?: number;
+}
+
+/**
+ * Automation state interface for managing automation actions
+ */
+interface AutomationState {
+  isAutomating: boolean;
+  currentAction?: string;
+  targetElement?: string;
+  progress?: number;
+}
+
+/**
+ * Browser component props
+ */
+interface BrowserComponentProps {
+  className?: string;
+  initialUrl?: string;
+  onUrlChange?: (url: string) => void;
+  onAutomationStateChange?: (state: AutomationState) => void;
+}
+
+/**
+ * YOLO Browser Component with WebContentsView integration
+ * 
+ * This component provides a modern browser interface using Electron's WebContentsView API
+ * (replacing the deprecated BrowserView). It includes:
+ * - Multi-tab browsing with state management
+ * - Native browser automation capabilities
+ * - Context sharing with the editor and terminal
+ * - Automation overlay for visual feedback
+ */
+const BrowserComponent: React.FC<BrowserComponentProps> = ({
+  className = '',
+  initialUrl = 'https://www.google.com',
+  onUrlChange,
+  onAutomationStateChange
+}) => {
+  // Tab management state
+  const [tabs, setTabs] = useState<BrowserTab[]>([]);
+  const [activeTab, setActiveTab] = useState<BrowserTab | null>(null);
+  const [currentUrl, setCurrentUrl] = useState<string>(initialUrl);
+  
+  // Browser state
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [canGoBack, setCanGoBack] = useState<boolean>(false);
+  const [canGoForward, setCanGoForward] = useState<boolean>(false);
+  
+  // Automation state
+  const [automationState, setAutomationState] = useState<AutomationState>({
+    isAutomating: false
+  });
+  
+  // WebContentsView state
+  const [webContentsId, setWebContentsId] = useState<number | null>(null);
+  const browserContainerRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Initialize browser component and create initial tab
+   */
+  useEffect(() => {
+    const initializeBrowser = async () => {
+      try {
+        // Create initial tab
+        const initialTab: BrowserTab = {
+          id: `tab-${Date.now()}`,
+          title: 'New Tab',
+          url: initialUrl,
+          isActive: true,
+          isLoading: false,
+          canGoBack: false,
+          canGoForward: false
+        };
+
+        setTabs([initialTab]);
+        setActiveTab(initialTab);
+
+        // Create WebContentsView for the initial tab
+        const result = await window.electronAPI.browser.createWebContentsView({
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            enableRemoteModule: false,
+            webSecurity: true
+          }
+        });
+
+        if (result.success && result.webContentsId) {
+          setWebContentsId(result.webContentsId);
+          
+          // Navigate to initial URL
+          await window.electronAPI.browser.navigateTo(initialUrl);
+          
+          // Update tab with webContentsId
+          setTabs(prev => prev.map(tab => 
+            tab.id === initialTab.id 
+              ? { ...tab, webContentsId: result.webContentsId }
+              : tab
+          ));
+        }
+      } catch (error) {
+        console.error('Failed to initialize browser:', error);
+      }
+    };
+
+    initializeBrowser();
+
+    // Cleanup on unmount
+    return () => {
+      if (webContentsId) {
+        window.electronAPI.browser.destroyWebContentsView().catch(console.error);
+      }
+    };
+  }, [initialUrl]);
+
+  /**
+   * Update URL and navigation state
+   */
+  const updateNavigationState = useCallback(async () => {
+    try {
+      const url = await window.electronAPI.browser.getCurrentUrl();
+      setCurrentUrl(url);
+      onUrlChange?.(url);
+
+      // Update active tab
+      if (activeTab) {
+        setTabs(prev => prev.map(tab => 
+          tab.id === activeTab.id 
+            ? { ...tab, url, isLoading: false }
+            : tab
+        ));
+      }
+
+      // Update navigation buttons state (this would come from WebContents events in a real implementation)
+      setCanGoBack(true); // Placeholder - would be from webContents.canGoBack()
+      setCanGoForward(false); // Placeholder - would be from webContents.canGoForward()
+      
+    } catch (error) {
+      console.error('Failed to update navigation state:', error);
+    }
+  }, [activeTab, onUrlChange]);
+
+  /**
+   * Navigate to URL
+   */
+  const navigateToUrl = useCallback(async (url: string, tabId?: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Ensure URL has protocol
+      const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+      
+      await window.electronAPI.browser.navigateTo(fullUrl);
+      
+      // Update tab state
+      const targetTabId = tabId || activeTab?.id;
+      if (targetTabId) {
+        setTabs(prev => prev.map(tab => 
+          tab.id === targetTabId 
+            ? { ...tab, url: fullUrl, isLoading: true }
+            : tab
+        ));
+      }
+      
+      // Update navigation state after a short delay
+      setTimeout(updateNavigationState, 1000);
+      
+    } catch (error) {
+      console.error('Navigation failed:', error);
+      setIsLoading(false);
+    }
+  }, [activeTab, updateNavigationState]);
+
+  /**
+   * Handle navigation actions
+   */
+  const handleGoBack = useCallback(async () => {
+    try {
+      await window.electronAPI.browser.goBack();
+      setTimeout(updateNavigationState, 500);
+    } catch (error) {
+      console.error('Go back failed:', error);
+    }
+  }, [updateNavigationState]);
+
+  const handleGoForward = useCallback(async () => {
+    try {
+      await window.electronAPI.browser.goForward();
+      setTimeout(updateNavigationState, 500);
+    } catch (error) {
+      console.error('Go forward failed:', error);
+    }
+  }, [updateNavigationState]);
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      await window.electronAPI.browser.reload();
+      setTimeout(updateNavigationState, 1000);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+      setIsLoading(false);
+    }
+  }, [updateNavigationState]);
+
+  /**
+   * Handle URL form submission
+   */
+  const handleUrlSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const url = formData.get('url') as string;
+    if (url && activeTab) {
+      navigateToUrl(url, activeTab.id);
+    }
+  }, [activeTab, navigateToUrl]);
+
+  /**
+   * Create new tab
+   */
+  const createNewTab = useCallback(() => {
+    const newTabId = `tab-${Date.now()}`;
+    const newTab: BrowserTab = {
+      id: newTabId,
+      title: 'New Tab',
+      url: 'about:blank',
+      isActive: false,
+      isLoading: false,
+      canGoBack: false,
+      canGoForward: false
+    };
+
+    setTabs(prev => [...prev, newTab]);
+  }, []);
+
+  /**
+   * Close tab
+   */
+  const closeTab = useCallback((tabId: string) => {
+    setTabs(prev => {
+      const filteredTabs = prev.filter(tab => tab.id !== tabId);
+      
+      // If we're closing the active tab, activate another one
+      if (activeTab?.id === tabId && filteredTabs.length > 0) {
+        const newActiveTab = filteredTabs[Math.max(0, filteredTabs.length - 1)];
+        setActiveTab(newActiveTab);
+        navigateToUrl(newActiveTab.url, newActiveTab.id);
+      } else if (filteredTabs.length === 0) {
+        setActiveTab(null);
+      }
+      
+      return filteredTabs;
+    });
+  }, [activeTab, navigateToUrl]);
+
+  /**
+   * Switch to tab
+   */
+  const switchToTab = useCallback((tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab) {
+      setTabs(prev => prev.map(t => ({ ...t, isActive: t.id === tabId })));
+      setActiveTab(tab);
+      navigateToUrl(tab.url, tabId);
+    }
+  }, [tabs, navigateToUrl]);
+
+  /**
+   * Execute automation script
+   */
+  const executeAutomation = useCallback(async (script: string, description?: string) => {
+    try {
+      setAutomationState({
+        isAutomating: true,
+        currentAction: description || 'Executing automation...',
+        progress: 0
+      });
+
+      onAutomationStateChange?.({
+        isAutomating: true,
+        currentAction: description || 'Executing automation...',
+        progress: 0
+      });
+
+      const result = await window.electronAPI.browser.executeJavaScript(script);
+
+      setAutomationState({
+        isAutomating: false,
+        progress: 100
+      });
+
+      onAutomationStateChange?.({
+        isAutomating: false,
+        progress: 100
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Automation execution failed:', error);
+      
+      setAutomationState({
+        isAutomating: false,
+        progress: 0
+      });
+
+      onAutomationStateChange?.({
+        isAutomating: false,
+        progress: 0
+      });
+
+      throw error;
+    }
+  }, [onAutomationStateChange]);
+
+  /**
+   * Predefined automation actions
+   */
+  const automationActions = {
+    fillForm: (selector: string, data: Record<string, string>) => {
+      const script = `
+        const form = document.querySelector('${selector}');
+        if (form) {
+          ${Object.entries(data).map(([key, value]) => 
+            `const field = form.querySelector('[name="${key}"]'); 
+             if (field) field.value = '${value}';`
+          ).join('\n')}
+          return { success: true, message: 'Form filled successfully' };
+        }
+        return { success: false, message: 'Form not found' };
+      `;
+      return executeAutomation(script, 'Filling form...');
+    },
+
+    clickElement: (selector: string) => {
+      const script = `
+        const element = document.querySelector('${selector}');
+        if (element) {
+          element.click();
+          return { success: true, message: 'Element clicked' };
+        }
+        return { success: false, message: 'Element not found' };
+      `;
+      return executeAutomation(script, 'Clicking element...');
+    },
+
+    extractData: (selector: string) => {
+      const script = `
+        const elements = document.querySelectorAll('${selector}');
+        return Array.from(elements).map(el => ({
+          text: el.textContent?.trim(),
+          href: el.href,
+          value: el.value,
+          tagName: el.tagName
+        }));
+      `;
+      return executeAutomation(script, 'Extracting data...');
+    }
+  };
+
+  return (
+    <div className={`browser-component ${className}`}>
+      {/* Tab Bar */}
+      <div className="tab-bar">
+        {tabs.map((tab) => (
+          <div
+            key={tab.id}
+            className={`tab ${tab.isActive ? 'active' : ''}`}
+            onClick={() => switchToTab(tab.id)}
+          >
+            <span className="tab-title">{tab.title}</span>
+            <button
+              className="tab-close"
+              onClick={(e) => {
+                e.stopPropagation();
+                closeTab(tab.id);
+              }}
+              aria-label={`Close ${tab.title}`}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <button className="new-tab-button" onClick={createNewTab} aria-label="New tab">
+          +
+        </button>
+      </div>
+
+      {/* Navigation Bar */}
+      <div className="navigation-bar">
+        <div className="nav-controls">
+          <button
+            className={`nav-button ${!canGoBack ? 'disabled' : ''}`}
+            onClick={handleGoBack}
+            disabled={!canGoBack}
+            aria-label="Go back"
+          >
+            ←
+          </button>
+          <button
+            className={`nav-button ${!canGoForward ? 'disabled' : ''}`}
+            onClick={handleGoForward}
+            disabled={!canGoForward}
+            aria-label="Go forward"
+          >
+            →
+          </button>
+          <button className="nav-button" onClick={handleRefresh} aria-label="Refresh">
+            ⟳
+          </button>
+        </div>
+
+        <form className="url-bar" onSubmit={handleUrlSubmit}>
+          <input
+            type="text"
+            name="url"
+            defaultValue={currentUrl}
+            placeholder="Enter URL or search..."
+            className="url-input"
+            autoComplete="off"
+          />
+          <button type="submit" className="go-button" aria-label="Navigate">
+            Go
+          </button>
+        </form>
+
+        {isLoading && (
+          <div className="loading-indicator" aria-label="Loading">
+            ⟳
+          </div>
+        )}
+      </div>
+
+      {/* Browser Content Area */}
+      <div 
+        ref={browserContainerRef}
+        className="browser-content"
+        style={{ 
+          width: '100%', 
+          height: 'calc(100% - 80px)', // Account for tab bar and navigation
+          position: 'relative'
+        }}
+      >
+        {/* Automation Overlay */}
+        {automationState.isAutomating && (
+          <div className="automation-overlay">
+            <div className="automation-status">
+              <div className="automation-message">
+                {automationState.currentAction}
+              </div>
+              {automationState.progress !== undefined && (
+                <div className="automation-progress">
+                  <div 
+                    className="progress-bar" 
+                    style={{ width: `${automationState.progress}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* WebContentsView will be attached here by the main process */}
+        <div id={`webcontents-container-${activeTab?.id || 'default'}`} className="webcontents-container" />
+      </div>
+
+      {/* Automation Controls (Development/Debug) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="automation-controls">
+          <button onClick={() => automationActions.clickElement('button')}>
+            Test Click
+          </button>
+          <button onClick={() => automationActions.extractData('a')}>
+            Extract Links
+          </button>
+          <button onClick={() => executeAutomation('document.title', 'Get page title')}>
+            Get Title
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default BrowserComponent;

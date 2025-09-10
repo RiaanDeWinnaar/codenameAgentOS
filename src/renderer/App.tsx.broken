@@ -1,0 +1,240 @@
+import React, { useState, useEffect } from 'react';
+import MonacoEditor, { SUPPORTED_LANGUAGES } from './components/MonacoEditor';
+import BrowserComponent from './components/BrowserComponent';
+          <div className='browser-container'>
+            <BrowserComponent
+              initialUrl="https://www.google.com"
+              onUrlChange={(url) => {
+                setStatus(prev => ({ ...prev, currentUrl: url }));
+                if (window.electronAPI) {
+                  window.electronAPI.logInfo(`Browser navigated to: ${url}`);
+                }
+              }}
+              onAutomationStateChange={(state) => {
+                if (window.electronAPI) {
+                  window.electronAPI.logInfo(`Automation state: ${state.isAutomating ? 'active' : 'inactive'}`);
+                }
+              }}
+              className="yolo-browser"
+            />
+          </div>FC = () => {
+  const [appInfo, setAppInfo] = useState<{
+    name: string;
+    version: string;
+    isPackaged: boolean;
+  }>({
+    name: 'YOLO-Browser',
+    version: '1.0.0',
+    isPackaged: false,
+  });
+
+  const [status, setStatus] = useState<{
+    yoloMode: boolean;
+    trustLevel: string;
+    aiConnected: boolean;
+    currentUrl: string;
+  }>({
+    yoloMode: false,
+    trustLevel: 'none',
+    aiConnected: false,
+    currentUrl: 'about:blank',
+  });
+
+  const [editorState, setEditorState] = useState<{
+    content: string;
+    language: string;
+    theme: 'vs-dark' | 'vs-light';
+  }>({
+    content: '// Welcome to YOLO-Browser!\n// This is the Monaco Editor integrated into the platform.\n\nconsole.log("Hello, YOLO-Browser!");',
+    language: 'typescript',
+    theme: 'vs-dark',
+  });
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        if (window.electronAPI) {
+          // Get app information
+          const [name, version, isPackaged] = await Promise.all([
+            window.electronAPI.getName(),
+            window.electronAPI.getVersion(),
+            window.electronAPI.isPackaged(),
+          ]);
+
+          setAppInfo({ name, version, isPackaged });
+
+          // Get status information
+          const [yoloMode, trustLevel, aiConnected, currentUrl] =
+            await Promise.all([
+              window.electronAPI.automation.isYoloModeEnabled(),
+              window.electronAPI.automation.getTrustLevel(),
+              window.electronAPI.ai.isConnected(),
+              window.electronAPI.browser.getCurrentUrl(),
+            ]);
+
+          setStatus({ yoloMode, trustLevel, aiConnected, currentUrl });
+
+          window.electronAPI.logInfo('App component initialized successfully');
+        }
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+        if (window.electronAPI) {
+          window.electronAPI.logError(`Failed to initialize app: ${error}`);
+        }
+      }
+    };
+
+    initializeApp();
+  }, []);
+
+  const handleEditorChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      setEditorState(prev => ({ ...prev, content: value }));
+    }
+  };
+
+  const handleEditorSave = (value: string) => {
+    // TODO: Implement file saving logic
+    console.log('Saving content:', value);
+    if (window.electronAPI) {
+      window.electronAPI.logInfo(`Editor content saved: ${value.length} characters`);
+    }
+  };
+
+  const handleLanguageChange = (newLanguage: string) => {
+    setEditorState(prev => ({ ...prev, language: newLanguage }));
+    if (window.electronAPI) {
+      window.electronAPI.logInfo(`Editor language changed to: ${newLanguage}`);
+    }
+  };
+
+  const handleThemeChange = (newTheme: 'vs-dark' | 'vs-light') => {
+    setEditorState(prev => ({ ...prev, theme: newTheme }));
+    if (window.electronAPI) {
+      window.electronAPI.logInfo(`Editor theme changed to: ${newTheme}`);
+    }
+  };
+
+  return (
+    <div className='app'>
+      <header className='app-header'>
+        <h1>{appInfo.name}</h1>
+        <div className='app-info'>
+          <span>v{appInfo.version}</span>
+          <span>{appInfo.isPackaged ? 'Production' : 'Development'}</span>
+        </div>
+      </header>
+
+      <main className='app-main'>
+        <div className='status-panel'>
+          <h2>System Status</h2>
+          <div className='status-grid'>
+            <div className='status-item'>
+              <span className='status-label'>YOLO Mode:</span>
+              <span
+                className={`status-indicator ${status.yoloMode ? 'enabled' : 'disabled'}`}
+              >
+                {status.yoloMode ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+            <div className='status-item'>
+              <span className='status-label'>Trust Level:</span>
+              <span className={`trust-level ${status.trustLevel}`}>
+                {status.trustLevel}
+              </span>
+            </div>
+            <div className='status-item'>
+              <span className='status-label'>AI Connection:</span>
+              <span
+                className={`status-indicator ${status.aiConnected ? 'connected' : 'disconnected'}`}
+              >
+                {status.aiConnected ? 'Connected' : 'Disconnected'}
+              </span>
+            </div>
+            <div className='status-item'>
+              <span className='status-label'>Current URL:</span>
+              <span className='url'>{status.currentUrl}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className='editor-panel'>
+          <div className='editor-header'>
+            <h2>Monaco Editor</h2>
+            <div className='editor-controls'>
+              <select 
+                value={editorState.language} 
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className='language-selector'
+                aria-label='Select programming language'
+                title='Select programming language for syntax highlighting'
+              >
+                {SUPPORTED_LANGUAGES.map(lang => 
+                  React.createElement('option', { 
+                    key: lang.id, 
+                    value: lang.id 
+                  }, lang.label)
+                )}
+              </select>
+              <button 
+                onClick={() => handleThemeChange(editorState.theme === 'vs-dark' ? 'vs-light' : 'vs-dark')}
+                className='theme-toggle'
+              >
+                {editorState.theme === 'vs-dark' ? '☀️ Light' : '🌙 Dark'}
+              </button>
+            </div>
+          </div>
+          <div className='editor-container'>
+            <MonacoEditor
+              value={editorState.content}
+              language={editorState.language}
+              theme={editorState.theme}
+              onChange={handleEditorChange}
+              onSave={handleEditorSave}
+              minimap={true}
+              fontSize={14}
+              className='main-editor'
+            />
+          </div>
+        </div>
+
+        <div className='browser-panel'>
+          <div className='browser-header'>
+            <h2>Browser Automation</h2>
+            <div className='browser-controls'>
+              <button 
+                onClick={() => setStatus(prev => ({ ...prev, yoloMode: !prev.yoloMode }))}
+                className={`yolo-toggle ${status.yoloMode ? 'enabled' : 'disabled'}`}
+              >
+                {status.yoloMode ? '🤖 YOLO ON' : '⏸️ YOLO OFF'}
+              </button>
+            </div>
+          </div>
+          <div className='browser-container'>
+            <BrowserComponent
+              initialUrl="https://www.google.com"
+              onUrlChange={(url) => {
+                setStatus(prev => ({ ...prev, currentUrl: url }));
+                if (window.electronAPI) {
+                  window.electronAPI.logInfo(`Browser navigated to: ${url}`);
+                }
+              }}
+              onAutomationStateChange={(state) => {
+                if (window.electronAPI) {
+                  window.electronAPI.logInfo(`Automation state: ${state.isAutomating ? 'active' : 'inactive'}`);
+                }
+              }}
+              className='main-browser'
+            />
+          </div>
+        </div>
+      </main>
+
+      <footer className='app-footer'>
+        <p>YOLO-Browser - Autonomous Web Automation Platform</p>
+      </footer>
+    </div>
+  );
+};
+
+export default App;

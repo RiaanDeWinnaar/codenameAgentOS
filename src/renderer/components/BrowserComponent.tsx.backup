@@ -1,0 +1,528 @@
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import './BrowserComponent.css';
+
+// Browser tab interface for multi-tab support
+interface BrowserTab {
+  id: string;
+  title: string;
+  url: string;
+  isActive: boolean;
+  webContentsId?: number;
+  canGoBack?: boolean;
+  canGoForward?: boolean;
+  isLoading?: boolean;
+}
+
+// Browser automation overlay interface
+interface AutomationOverlay {
+  id: string;
+  element: string;
+  action: string;
+  visible: boolean;
+  position?: { x: number; y: number };
+}
+
+// Props interface for the browser component
+interface BrowserComponentProps {
+  initialUrl?: string;
+  onNavigate?: (url: string, tabId: string) => void;
+  onDOMReady?: (tabId: string) => void;
+  onAutomationOverlay?: (overlay: AutomationOverlay) => void;
+  enableAutomation?: boolean;
+  className?: string;
+}
+
+const BrowserComponent: React.FC<BrowserComponentProps> = ({
+  initialUrl = 'https://www.google.com',
+  onNavigate,
+  onDOMReady,
+  onAutomationOverlay,
+  enableAutomation = true,
+  className = '',
+}) => {
+  // State management
+  const [tabs, setTabs] = useState<BrowserTab[]>([
+    {
+      id: 'tab-1',
+      title: 'New Tab',
+      url: initialUrl,
+      isActive: true,
+      isLoading: false,
+    },
+  ]);
+  
+  const [currentUrl, setCurrentUrl] = useState<string>(initialUrl);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [automationOverlays, setAutomationOverlays] = useState<AutomationOverlay[]>([]);
+  
+  // Refs for browser container and WebContentsView management
+  const browserContainerRef = useRef<HTMLDivElement>(null);
+  const webContentsViewRef = useRef<any>(null);
+
+  // Get active tab
+  const activeTab = tabs.find(tab => tab.isActive);
+
+  /**
+   * Initialize WebContentsView for browser functionality
+   * This replaces the deprecated BrowserView API
+   */
+  const initializeWebContentsView = useCallback(async () => {
+    try {
+      if (!window.electronAPI) {
+        console.warn('Electron API not available - running in web mode');
+        return;
+      }
+
+      // Request WebContentsView creation from main process
+      const result = await window.electronAPI.browser.createWebContentsView({
+        bounds: { x: 0, y: 0, width: 800, height: 600 },
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          webSecurity: true,
+        },
+      });
+
+      if (result.success) {
+        webContentsViewRef.current = result.webContentsView;
+        
+        // Set up event listeners for navigation and automation
+        setupWebContentsEventListeners(result.webContentsId);
+        
+        // Load initial URL
+        await navigateToUrl(initialUrl, 'tab-1');
+      }
+    } catch (error) {
+      console.error('Failed to initialize WebContentsView:', error);
+    }
+  }, [initialUrl]);
+
+  /**
+   * Set up event listeners for WebContents navigation and DOM events
+   */
+  const setupWebContentsEventListeners = useCallback((webContentsId: number) => {
+    if (!window.electronAPI) return;
+
+    // Navigation events
+    window.electronAPI.on('browser-did-navigate', (data: any) => {
+      if (data.webContentsId === webContentsId) {
+        setCurrentUrl(data.url);
+        setIsLoading(false);
+        
+        // Update active tab
+        setTabs(prevTabs => 
+          prevTabs.map(tab => 
+            tab.isActive 
+              ? { ...tab, url: data.url, title: data.title || 'Loading...', isLoading: false }
+              : tab
+          )
+        );
+
+        onNavigate?.(data.url, activeTab?.id || 'tab-1');
+      }
+    });
+
+    // DOM ready event for automation setup
+    window.electronAPI.on('browser-dom-ready', (data: any) => {
+      if (data.webContentsId === webContentsId) {
+        onDOMReady?.(activeTab?.id || 'tab-1');
+        
+        // Inject automation overlay if enabled
+        if (enableAutomation) {
+          injectAutomationOverlay(webContentsId);
+        }
+      }
+    });
+
+    // Navigation state changes
+    window.electronAPI.on('browser-navigation-state', (data: any) => {
+      if (data.webContentsId === webContentsId) {
+        setTabs(prevTabs => 
+          prevTabs.map(tab => 
+            tab.isActive 
+              ? { ...tab, canGoBack: data.canGoBack, canGoForward: data.canGoForward }
+              : tab
+          )
+        );
+      }
+    });
+
+    // Loading state changes
+    window.electronAPI.on('browser-did-start-loading', (data: any) => {
+      if (data.webContentsId === webContentsId) {
+        setIsLoading(true);
+        setTabs(prevTabs => 
+          prevTabs.map(tab => 
+            tab.isActive ? { ...tab, isLoading: true } : tab
+          )
+        );
+      }
+    });
+
+    window.electronAPI.on('browser-did-stop-loading', (data: any) => {
+      if (data.webContentsId === webContentsId) {
+        setIsLoading(false);
+        setTabs(prevTabs => 
+          prevTabs.map(tab => 
+            tab.isActive ? { ...tab, isLoading: false } : tab
+          )
+        );
+      }
+    });
+  }, [activeTab?.id, enableAutomation, onNavigate, onDOMReady]);
+
+  /**
+   * Navigate to a specific URL
+   */
+  const navigateToUrl = useCallback(async (url: string, tabId: string) => {
+    try {
+      if (!window.electronAPI || !webContentsViewRef.current) {
+        console.warn('Browser navigation not available - showing placeholder');
+        setCurrentUrl(url);
+        return;
+      }
+
+      // Validate and format URL
+      const formattedUrl = formatUrl(url);
+      
+      setIsLoading(true);
+      await window.electronAPI.browser.navigateTo(formattedUrl);
+      
+    } catch (error) {
+      console.error('Navigation failed:', error);
+      setIsLoading(false);
+    }
+  }, []);
+
+  /**
+   * Format URL for navigation
+   */
+  const formatUrl = (url: string): string => {
+    if (!url) return 'about:blank';
+    
+    // Add protocol if missing
+    if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('file://')) {
+      // Check if it looks like a domain
+      if (url.includes('.') && !url.includes(' ')) {
+        return `https://${url}`;
+      } else {
+        // Treat as search query
+        return `https://www.google.com/search?q=${encodeURIComponent(url)}`;
+      }
+    }
+    
+    return url;
+  };
+
+  /**
+   * Inject automation overlay into the current page
+   */
+  const injectAutomationOverlay = useCallback(async (webContentsId: number) => {
+    try {
+      if (!window.electronAPI) return;
+
+      const overlayScript = `
+        (function() {
+          // Remove existing overlay
+          const existingOverlay = document.getElementById('yolo-automation-overlay');
+          if (existingOverlay) {
+            existingOverlay.remove();
+          }
+
+          // Create automation overlay
+          const overlay = document.createElement('div');
+          overlay.id = 'yolo-automation-overlay';
+          overlay.style.cssText = \`
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 123, 255, 0.1);
+            border: 2px dashed rgba(0, 123, 255, 0.3);
+            z-index: 999999;
+            pointer-events: none;
+            display: none;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          \`;
+
+          // Create automation status indicator
+          const statusIndicator = document.createElement('div');
+          statusIndicator.style.cssText = \`
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 123, 255, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 1000000;
+            pointer-events: none;
+            font-weight: 500;
+          \`;
+          statusIndicator.textContent = 'YOLO Automation Active';
+
+          document.body.appendChild(overlay);
+          document.body.appendChild(statusIndicator);
+
+          // Global automation helper functions
+          window.YOLOAutomation = {
+            highlightElement: function(selector) {
+              const element = document.querySelector(selector);
+              if (element) {
+                element.style.outline = '3px solid #007bff';
+                element.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+              }
+            },
+            
+            clearHighlights: function() {
+              document.querySelectorAll('[style*="outline: 3px solid #007bff"]').forEach(el => {
+                el.style.outline = '';
+                el.style.backgroundColor = '';
+              });
+            },
+            
+            showOverlay: function() {
+              overlay.style.display = 'block';
+            },
+            
+            hideOverlay: function() {
+              overlay.style.display = 'none';
+            }
+          };
+
+          console.log('YOLO Browser automation overlay injected successfully');
+        })();
+      `;
+
+      await window.electronAPI.browser.executeJavaScript(overlayScript);
+    } catch (error) {
+      console.error('Failed to inject automation overlay:', error);
+    }
+  }, []);
+
+  /**
+   * Handle navigation actions
+   */
+  const handleGoBack = useCallback(async () => {
+    if (window.electronAPI && activeTab?.canGoBack) {
+      await window.electronAPI.browser.goBack();
+    }
+  }, [activeTab?.canGoBack]);
+
+  const handleGoForward = useCallback(async () => {
+    if (window.electronAPI && activeTab?.canGoForward) {
+      await window.electronAPI.browser.goForward();
+    }
+  }, [activeTab?.canGoForward]);
+
+  const handleRefresh = useCallback(async () => {
+    if (window.electronAPI) {
+      await window.electronAPI.browser.reload();
+    }
+  }, []);
+
+  const handleUrlSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const url = formData.get('url') as string;
+    if (url && activeTab) {
+      navigateToUrl(url, activeTab.id);
+    }
+  }, [activeTab, navigateToUrl]);
+
+  /**
+   * Create new tab
+   */
+  const createNewTab = useCallback(() => {
+    const newTabId = `tab-${Date.now()}`;
+    const newTab: BrowserTab = {
+      id: newTabId,
+      title: 'New Tab',
+      url: 'about:blank',
+      isActive: false,
+      isLoading: false,
+    };
+
+    setTabs(prevTabs => [...prevTabs, newTab]);
+    
+    // Switch to new tab after creation
+    setTimeout(() => switchToTab(newTabId), 0);
+  }, []);
+
+  /**
+   * Switch to a specific tab
+   */
+  const switchToTab = useCallback((tabId: string) => {
+    setTabs(prevTabs => 
+      prevTabs.map(tab => ({
+        ...tab,
+        isActive: tab.id === tabId,
+      }))
+    );
+
+    const targetTab = tabs.find(tab => tab.id === tabId);
+    if (targetTab) {
+      setCurrentUrl(targetTab.url);
+      // TODO: Switch WebContentsView to the target tab's webContents
+    }
+  }, [tabs]);
+
+  /**
+   * Close a tab
+   */
+  const closeTab = useCallback((tabId: string) => {
+    setTabs(prevTabs => {
+      const newTabs = prevTabs.filter(tab => tab.id !== tabId);
+      
+      // If we're closing the active tab, activate another one
+      if (newTabs.length > 0) {
+        const wasActive = prevTabs.find(tab => tab.id === tabId)?.isActive;
+        if (wasActive) {
+          newTabs[0].isActive = true;
+          setCurrentUrl(newTabs[0].url);
+        }
+      }
+      
+      return newTabs;
+    });
+  }, []);
+
+  // Initialize WebContentsView on component mount
+  useEffect(() => {
+    initializeWebContentsView();
+    
+    return () => {
+      // Cleanup WebContentsView resources
+      if (webContentsViewRef.current && window.electronAPI) {
+        window.electronAPI.browser.destroyWebContentsView?.();
+      }
+    };
+  }, [initializeWebContentsView]);
+
+  return (
+    <div className={`browser-component ${className}`}>
+      {/* Tab Bar */}
+      <div className="browser-tabs">
+        {tabs.map(tab => (
+          <div
+            key={tab.id}
+            className={`browser-tab ${tab.isActive ? 'active' : ''}`}
+            onClick={() => switchToTab(tab.id)}
+          >
+            <span className="tab-title">{tab.title}</span>
+            {tab.isLoading && <span className="tab-loading">⟳</span>}
+            {tabs.length > 1 && (
+              <button
+                className="tab-close"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeTab(tab.id);
+                }}
+                aria-label="Close tab"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+        <button className="new-tab-button" onClick={createNewTab} aria-label="New tab">
+          +
+        </button>
+      </div>
+
+      {/* Navigation Bar */}
+      <div className="browser-navigation">
+        <div className="nav-controls">
+          <button
+            className={`nav-button ${!activeTab?.canGoBack ? 'disabled' : ''}`}
+            onClick={handleGoBack}
+            disabled={!activeTab?.canGoBack}
+            aria-label="Go back"
+          >
+            ←
+          </button>
+          <button
+            className={`nav-button ${!activeTab?.canGoForward ? 'disabled' : ''}`}
+            onClick={handleGoForward}
+            disabled={!activeTab?.canGoForward}
+            aria-label="Go forward"
+          </button>
+          <button className="nav-button" onClick={handleRefresh} aria-label="Refresh">
+            ⟳
+          </button>
+        </div>
+
+        <form className="url-bar" onSubmit={handleUrlSubmit}>
+          <input
+            type="text"
+            name="url"
+            defaultValue={currentUrl}
+            placeholder="Enter URL or search..."
+            className="url-input"
+            autoComplete="off"
+          />
+          <button type="submit" className="url-submit" aria-label="Navigate">
+            →
+          </button>
+        </form>
+
+        <div className="browser-status">
+          {isLoading && <span className="loading-indicator">Loading...</span>}
+          {enableAutomation && (
+            <span className="automation-status" title="YOLO Automation Enabled">
+              🤖
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Browser Content */}
+      <div
+        ref={browserContainerRef}
+        className="browser-content"
+        style={{ flex: 1, background: '#fff' }}
+      >
+        {!window.electronAPI ? (
+          <div className="browser-placeholder">
+            <h3>Browser Component</h3>
+            <p>Current URL: {currentUrl}</p>
+            <p>Running in web mode - Electron APIs not available</p>
+            <p>In the Electron app, this will show the actual WebContentsView</p>
+          </div>
+        ) : (
+          // WebContentsView will be embedded here by the main process
+          <div className="webcontents-view-container">
+            <div id="webcontents-view-placeholder" style={{ width: '100%', height: '100%' }}>
+              {/* WebContentsView will be attached here */}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Automation Overlays */}
+      {enableAutomation && automationOverlays.length > 0 && (
+        <div className="automation-overlays">
+          {automationOverlays.map(overlay => (
+            <div
+              key={overlay.id}
+              className={`automation-overlay ${overlay.visible ? 'visible' : ''}`}
+              style={{
+                position: 'absolute',
+                left: overlay.position?.x || 0,
+                top: overlay.position?.y || 0,
+              }}
+            >
+              <div className="overlay-content">
+                Action: {overlay.action} on {overlay.element}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default BrowserComponent;
