@@ -19,34 +19,28 @@ YOLO-Browser is the first truly **agent-native development environment** where A
 
 ## Market Position
 
-### **vs. Perplexity Comet (Our Primary Competition)**
+YOLO-Browser positions itself as an open-source alternative to closed proprietary agentic browsers, offering:
 
-- ✅ **Same capabilities** - agentic web control, shopping automation, email management
-- ✅ **Open source** vs. closed ($200/month)
-- ✅ **Privacy-first** vs. data sent to Perplexity servers
-- ✅ **Extensible** vs. limited customization
+- ✅ **Open source** vs. closed proprietary solutions
+- ✅ **Privacy-first** vs. data sent to external servers
+- ✅ **Extensible** vs. limited customization options
+- ✅ **Local control** vs. cloud dependency
 
-### **vs. Block Goose (Complementary, Not Competitive)**
+## Value Proposition
 
-- **Goose:** Local development automation (coding, testing, CLI)
-- **AgentOS:** Internet automation (web browsing, online tasks)
-- **Together:** Complete AI automation ecosystem
+### What We Offer:
 
-## Value Proposition to Block/Goose Ecosystem
-
-### What We Bring:
-
-1. **Web Automation Gap** - Goose handles local development; we handle internet tasks
-2. **Broader Audience** - Extend beyond developers to general web users
+1. **Web Automation Platform** - Comprehensive internet task automation
+2. **Developer-Friendly** - Extend beyond basic users to technical professionals
 3. **Privacy Alternative** - Open-source competitor to closed agentic browsers
-4. **Shared Technology** - Compatible with MCP servers, similar AI patterns
-5. **Natural Evolution** - From local automation → Internet automation
+4. **Modular Architecture** - Compatible with various AI provider ecosystems
+5. **Future-Ready** - Designed for the evolving AI automation landscape
 
 ### Integration Opportunities:
 
-- **Shared MCP Ecosystem** - Common servers for both platforms
-- **Cross-Platform Workflows** - Web tasks trigger local development workflows
-- **Unified Experience** - Goose for dev, AgentOS for web
+- **MCP Ecosystem Compatibility** - Works with Model Context Protocol servers
+- **Cross-Platform Workflows** - Web tasks can trigger local development workflows
+- **Unified Experience** - Seamless automation across different environments
 
 ## Technical Architecture
 
@@ -142,7 +136,7 @@ YOLO-Browser is the first truly **agent-native development environment** where A
 
 - 📋 **System Integration** - Native OS automation capabilities
 - 📋 **Workflow Engine** - Complex multi-step automation sequences
-- 📋 **MCP Server Ecosystem** - Integration with Block Goose tools
+- 📋 **MCP Server Ecosystem** - Integration with Model Context Protocol tools
 - 📋 **Performance Optimization** - Sub-100ms context synchronization
 
 ### **Current Development Focus:**
@@ -160,21 +154,21 @@ YOLO-Browser is the first truly **agent-native development environment** where A
 - Direct DOM manipulation without external tools
 - Cross-tab context persistence
 
-## Block Goose Grant Opportunity
+## Grant & Development Opportunities
 
-We're applying for Block's Goose Grant Program ($100k, 12 months) to build AgentOS as a complementary project that:
+We're exploring various grant programs and partnerships to accelerate AgentOS development as an open-source project that:
 
-- **Extends Goose ecosystem** into web automation
-- **Creates open-source alternative** to closed agentic browsers
+- **Advances open-source AI tooling** in web automation
+- **Creates privacy-first alternatives** to closed agentic browsers
 - **Demonstrates novel interaction paradigms** for AI agents
-- **Builds privacy-first architecture** for agentic web control
+- **Builds transparent, user-controlled** automation systems
 
-**Grant Focus Areas:**
+**Focus Areas:**
 
 1. Novel interaction paradigm (natural language → web actions)
-2. Ecosystem expansion (web automation for Goose community)
-3. Privacy innovation (open alternative to closed systems)
-4. Cross-platform integration (Goose ↔ AgentOS workflows)
+2. Open-source ecosystem expansion (web automation for AI communities)
+3. Privacy innovation (local-first alternative to cloud-dependent systems)
+4. Cross-platform integration (seamless automation workflows)
 
 ## Getting Started
 
