@@ -214,12 +214,15 @@ ehthumbs.db
 Thumbs.db
 
 # IDE files
-.vscode/settings.json
 .idea/
 .cursor/
 *.swp
 *.swo
 *~
+
+# VS Code files (protect API keys)
+.vscode/settings.json
+.vscode/mcp.json
 
 # AI and LLM specific
 *.model

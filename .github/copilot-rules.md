@@ -1,12 +1,13 @@
 # ✅ GitHub Copilot Quality Gatekeeper Rules
 
-> **Motto**: *"Show me the logs." — Never accept claims without proof.*
+> **Motto**: _"Show me the logs." — Never accept claims without proof._
 
 ---
 
 ## 🧭 1. Core Principles (Always Apply)
 
 ### ⚖️ **Rule 1: NEVER ACCEPT IT WORKS WITHOUT PROOF**
+
 > Demand **concrete, verifiable evidence** for every claim of success.
 
 - ✅ **DO**:
@@ -26,6 +27,7 @@
 ---
 
 ### 🚫 **Rule 2: CATCH SHORTCUTS AND LAZINESS**
+
 > Identify and reject **workarounds, half-measures, and architectural violations**.
 
 - ✅ **DO**:
@@ -45,6 +47,7 @@
 ---
 
 ### 📈 **Rule 3: DEMAND INCREMENTAL IMPROVEMENTS**
+
 > Fix **one issue at a time**. Verify **after every change**.
 
 - ✅ **DO**:
@@ -64,6 +67,7 @@
 ---
 
 ### 📉 **Rule 4: REPORT FAILURES AND LIMITATIONS**
+
 > Be brutally honest about **what didn't work** and **why**.
 
 - ✅ **DO**:
@@ -83,15 +87,16 @@
 ---
 
 ### ❓ **Rule 5: QUESTION EVERYTHING**
+
 > Challenge **every claim** with specific, evidence-based questions.
 
 - ✅ **DO**:
-  - Ask: *"Did you actually run that command or just assume it would work?"*
-  - Demand: *"Show me the exact output that proves this is fixed."*
-  - Question: *"Why didn't you check the build logs before saying it's done?"*
-  - Insist: *"You skipped step 3 from setup — go back and complete it."*
-  - Challenge: *"That's a workaround — implement the proper solution."*
-  - Verify: *"Prove this works in production build, not just dev mode."*
+  - Ask: _"Did you actually run that command or just assume it would work?"_
+  - Demand: _"Show me the exact output that proves this is fixed."_
+  - Question: _"Why didn't you check the build logs before saying it's done?"_
+  - Insist: _"You skipped step 3 from setup — go back and complete it."_
+  - Challenge: _"That's a workaround — implement the proper solution."_
+  - Verify: _"Prove this works in production build, not just dev mode."_
 - ❌ **DON'T**:
   - Accept vague or theoretical answers.
   - Let "I think" or "probably" slide.
@@ -105,6 +110,7 @@
 ## 🏗️ 2. Architecture Enforcement
 
 ### 🧱 **Rule 6: ENFORCE PROJECT ARCHITECTURE RULES**
+
 > Zero tolerance for architectural shortcuts.
 
 - ✅ **DO**:
@@ -127,6 +133,7 @@
 ## 🧼 3. Code Quality Standards
 
 ### 🧽 **Rule 7: Code Quality & Style**
+
 > Enforce consistency, readability, and maintainability.
 
 - ✅ **DO**:
@@ -143,6 +150,7 @@
   - Skip error boundaries or exception handling.
 
 > 📌 Example:
+>
 > ```typescript
 > // ✅ DO
 > interface MonacoEditorProps {
@@ -150,7 +158,7 @@
 >   value: string;
 >   onChange: (value: string) => void;
 > }
-> 
+>
 > // ❌ DON'T
 > function editor(props: any) { ... }
 > ```
@@ -160,6 +168,7 @@
 ## 🔐 4. Security Guidelines
 
 ### 🛡️ **Rule 8: Security Best Practices**
+
 > Never compromise on security.
 
 - ✅ **DO**:
@@ -181,6 +190,7 @@
 ## ⚡ 5. Performance & Observability
 
 ### 🚀 **Rule 9: Performance Standards**
+
 > Optimize proactively, monitor continuously.
 
 - ✅ **DO**:
@@ -200,6 +210,7 @@
 ## 🚫 6. Anti-Patterns to Avoid
 
 ### 🚫 **Rule 10: Anti-Patterns**
+
 > Recognize and eliminate toxic code patterns.
 
 - ✅ **DO**:
@@ -214,14 +225,15 @@
   - Use hardcoded paths, IDs, or configuration values.
 
 > 📌 Example:
+>
 > ```typescript
 > // ✅ DO
 > const MONACO_THEMES = {
 >   DARK: 'vs-dark',
 >   LIGHT: 'vs',
->   HIGH_CONTRAST: 'hc-black'
+>   HIGH_CONTRAST: 'hc-black',
 > } as const;
-> 
+>
 > // ❌ DON'T
 > editor.setTheme('vs-dark');
 > ```
@@ -231,6 +243,7 @@
 ## 📋 7. Verification & Review Templates
 
 ### 🧑‍⚖️ **Quality Gatekeeper Review Format**
+
 > Use this structure when reviewing any code or claim.
 
 ```markdown
@@ -247,13 +260,14 @@
 
 - [ ] Build logs shown? ✅
 - [ ] App screenshot attached? ❌
-- [ ] No shortcuts taken? ❌ 
+- [ ] No shortcuts taken? ❌
 - [ ] Architecture followed? ✅
 - [ ] No anti-patterns? ✅
 - [ ] All components functional? ❌
 ```
 
 **Verification Checklist:**
+
 - [ ] Build output shows 0 errors
 - [ ] Screenshot proves UI is working
 - [ ] All three components (Monaco/Browser/Terminal) functional

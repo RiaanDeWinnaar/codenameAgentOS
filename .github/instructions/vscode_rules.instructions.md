@@ -52,3 +52,12 @@ applyTo: '.github/instructions/*.instructions.md'
   - Include both DO and DON'T examples
   - Reference actual code over theoretical examples
   - Use consistent formatting across rules
+
+- **Git and Security Rules:**
+  - **ALWAYS** reference [git_workflow.instructions.md](.github/instructions/git_workflow.instructions.md) before any git operations
+  - **NEVER** commit without completing security checklist
+  - **VERIFY** .gitignore protects sensitive files (.env, .vscode/mcp.json)
+  - **BUILD** project successfully before any commit
+  - Use VS Code integrated git for safety when uncertain
+  - Use command line git for performance with large changesets
+  - Follow conventional commit message format (feat:, fix:, docs:)
